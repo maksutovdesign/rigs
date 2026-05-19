@@ -1,0 +1,47 @@
+name: Deploy Web
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy-web:
+    name: Deploy Web
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Web
+        run: pnpm --filter @rigs/web build
+        env:
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+
+      - name: Deploy Web to production
+        run: |
+          echo "Deploy Web to production"
+          # TODO: Configure actual deployment target (Vercel)
+          # Options:
+          #   Vercel CLI: npx vercel --prod --token ${{ secrets.VERCEL_TOKEN }}
+          #   Vercel GitHub Integration: connect repo in Vercel dashboard for auto-deploy
+          #
+          # Example for Vercel CLI deployment:
+          # npx vercel --prod \
+          #   --token ${{ secrets.VERCEL_TOKEN }} \
+          #   --scope ${{ secrets.VERCEL_ORG_ID }}

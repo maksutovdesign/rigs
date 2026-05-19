@@ -1,0 +1,13 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+allowBuilds:
+  '@nestjs/core': true
+  '@prisma/client': true
+  '@prisma/engines': true
+  '@aws-sdk/client-s3': true
+  msgpackr-extract: true
+  prisma: true
+  react-native-screens: false
+  sharp: true
+  protobufjs: set this to true or false

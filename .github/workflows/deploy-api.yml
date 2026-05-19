@@ -1,0 +1,45 @@
+name: Deploy API
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy-api:
+    name: Deploy API
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build API
+        run: pnpm --filter @rigs/api build
+
+      - name: Deploy API to production
+        run: |
+          echo "Deploy API to production"
+          # TODO: Configure actual deployment target
+          # Options:
+          #   Railway:  railway up --service api
+          #   Render:   Use render.yaml + Render GitHub integration
+          #   VPS/SSH:  rsync dist + ssh to restart service
+          #
+          # Example for SSH deployment:
+          # ssh ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+          #   "cd /app && git pull && pnpm install --frozen-lockfile && pnpm --filter @rigs/api build && pm2 restart api"

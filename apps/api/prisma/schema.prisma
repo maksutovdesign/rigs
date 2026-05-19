@@ -1,0 +1,569 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  renter
+  host
+  both
+  admin
+}
+
+enum UserStatus {
+  active
+  suspended
+  banned
+}
+
+enum KycLevel {
+  none
+  phone
+  passport
+  full
+}
+
+enum ListingType {
+  equipment
+  experience
+  location
+  package
+}
+
+enum ListingStatus {
+  draft
+  active
+  paused
+  archived
+  moderation
+}
+
+enum ListingCondition {
+  new
+  excellent
+  good
+  fair
+}
+
+enum BookingStatus {
+  pending
+  confirmed
+  paid
+  active
+  completed
+  cancelled_renter
+  cancelled_host
+  disputed
+  refunded
+}
+
+enum DeliveryType {
+  pickup
+  delivery
+}
+
+enum PaymentType {
+  charge
+  hold
+  release
+  refund
+  payout
+}
+
+enum PaymentStatus {
+  pending
+  processing
+  completed
+  failed
+  refunded
+  partially_refunded
+}
+
+enum PaymentProvider {
+  yookassa
+  tinkoff
+  sbp
+}
+
+enum ReviewRole {
+  renter_reviews_host
+  host_reviews_renter
+}
+
+enum ReportTargetType {
+  listing
+  user
+  review
+}
+
+enum ReportStatus {
+  open
+  reviewing
+  resolved
+  dismissed
+}
+
+enum SubscriptionPlan {
+  free
+  basic
+  pro
+  business
+}
+
+enum MediaType {
+  photo
+  video
+}
+
+enum TeamRole {
+  owner
+  manager
+  staff
+}
+
+enum TeamMemberStatus {
+  pending
+  active
+  removed
+}
+
+// ─── Models ───────────────────────────────────────────────────────────────────
+
+model User {
+  id               String      @id @default(uuid())
+  phone            String      @unique
+  email            String?     @unique
+  passwordHash     String?     @map("password_hash")
+  firstName        String?     @map("first_name")
+  lastName         String?     @map("last_name")
+  avatarUrl        String?     @map("avatar_url")
+  dateOfBirth      DateTime?   @map("date_of_birth") @db.Date
+  role             UserRole    @default(renter)
+  status           UserStatus  @default(active)
+  kycLevel         KycLevel    @default(none) @map("kyc_level")
+  passportData     String?     @map("passport_data")
+  ratingAsHost     Decimal?    @map("rating_as_host") @db.Decimal(3, 2)
+  ratingAsRenter   Decimal?    @map("rating_as_renter") @db.Decimal(3, 2)
+  totalRentals     Int         @default(0) @map("total_rentals")
+  subscriptionPlan SubscriptionPlan @default(free) @map("subscription_plan")
+  fcmToken         String?     @map("fcm_token")
+  createdAt        DateTime    @default(now()) @map("created_at")
+  updatedAt        DateTime    @updatedAt @map("updated_at")
+
+  listings          Listing[]
+  bookingsAsRenter  Booking[]   @relation("RenterBookings")
+  bookingsAsHost    Booking[]   @relation("HostBookings")
+  reviewsGiven      Review[]    @relation("ReviewsGiven")
+  reviewsReceived   Review[]    @relation("ReviewsReceived")
+  wishlists         Wishlist[]
+  reports           Report[]
+  payouts           HostPayout[]
+  otpCodes          OtpCode[]
+  conversations1    Conversation[] @relation("Participant1")
+  conversations2    Conversation[] @relation("Participant2")
+  messages          Message[]
+  businessProfile   BusinessProfile?
+  teamOwned         TeamMember[] @relation("TeamOwner")
+  teamMemberships   TeamMember[] @relation("TeamMember")
+  referralsSent     Referral[] @relation("Referrer")
+  referralsReceived Referral[] @relation("Referee")
+
+  @@map("users")
+}
+
+model OtpCode {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  phone     String
+  code      String
+  expiresAt DateTime @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([phone, usedAt, expiresAt])
+  @@map("otp_codes")
+}
+
+model Category {
+  id          Int      @id @default(autoincrement())
+  parentId    Int?     @map("parent_id")
+  slug        String   @unique
+  nameRu      String   @map("name_ru")
+  nameEn      String?  @map("name_en")
+  iconUrl     String?  @map("icon_url")
+  coverUrl    String?  @map("cover_url")
+  sortOrder   Int      @default(0) @map("sort_order")
+  isActive    Boolean  @default(true) @map("is_active")
+  seoTitle    String?  @map("seo_title")
+  seoDescription String? @map("seo_description")
+
+  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryTree")
+  listings Listing[]
+
+  @@map("categories")
+}
+
+model Listing {
+  id          String        @id @default(uuid())
+  hostId      String        @map("host_id")
+  categoryId  Int           @map("category_id")
+  title       String
+  description String?       @db.Text
+  listingType ListingType   @default(equipment) @map("listing_type")
+  status      ListingStatus @default(draft)
+
+  address   String?
+  city      String
+  region    String?
+  country   String  @default("RU")
+  latitude  Decimal? @db.Decimal(10, 7)
+  longitude Decimal? @db.Decimal(10, 7)
+
+  brand    String?
+  model    String?
+  year     Int?
+  condition ListingCondition @default(good)
+  quantity  Int              @default(1)
+  availableQty Int           @default(1) @map("available_qty")
+
+  priceHourly  Decimal? @map("price_hourly") @db.Decimal(10, 2)
+  priceDaily   Decimal? @map("price_daily") @db.Decimal(10, 2)
+  priceWeekly  Decimal? @map("price_weekly") @db.Decimal(10, 2)
+  priceMonthly Decimal? @map("price_monthly") @db.Decimal(10, 2)
+  depositAmount Decimal? @map("deposit_amount") @db.Decimal(10, 2)
+  currency     String   @default("RUB")
+
+  minRentalHours  Int      @default(2) @map("min_rental_hours")
+  maxRentalDays   Int?     @map("max_rental_days")
+  instantBook     Boolean  @default(false) @map("instant_book")
+  deliveryAvailable Boolean @default(false) @map("delivery_available")
+  deliveryRadiusKm Int?    @map("delivery_radius_km")
+  deliveryPricePerKm Decimal? @map("delivery_price_per_km") @db.Decimal(10, 2)
+
+  requiresPassport Boolean @default(false) @map("requires_passport")
+  requiresLicense  Boolean @default(false) @map("requires_license")
+  requiresCert     Boolean @default(false) @map("requires_cert")
+  minAge           Int     @default(18) @map("min_age")
+
+  tags         String[]
+  viewsCount   Int      @default(0) @map("views_count")
+  bookingsCount Int     @default(0) @map("bookings_count")
+  rating       Decimal? @db.Decimal(3, 2)
+  reviewsCount Int      @default(0) @map("reviews_count")
+
+  rejectionReason String? @map("rejection_reason") @db.Text
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  host         User              @relation(fields: [hostId], references: [id])
+  category     Category          @relation(fields: [categoryId], references: [id])
+  media        ListingMedia[]
+  attributes   ListingAttribute[]
+  availability Availability[]
+  bookings     Booking[]
+  reviews      Review[]
+  wishlists    Wishlist[]
+
+  @@map("listings")
+}
+
+model ListingMedia {
+  id        String    @id @default(uuid())
+  listingId String    @map("listing_id")
+  url       String
+  type      MediaType @default(photo)
+  sortOrder Int       @default(0) @map("sort_order")
+  isCover   Boolean   @default(false) @map("is_cover")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@map("listing_media")
+}
+
+model ListingAttribute {
+  id        Int    @id @default(autoincrement())
+  listingId String @map("listing_id")
+  key       String
+  value     String
+  unit      String?
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@map("listing_attributes")
+}
+
+model Availability {
+  id           String   @id @default(uuid())
+  listingId    String   @map("listing_id")
+  date         DateTime @db.Date
+  availableQty Int      @map("available_qty")
+  isBlocked    Boolean  @default(false) @map("is_blocked")
+  blockedReason String? @map("blocked_reason")
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@unique([listingId, date])
+  // listingId-only index for lookups that filter by listing without a date range
+  @@index([listingId])
+  @@map("availability")
+}
+
+model Booking {
+  id        String        @id @default(uuid())
+  listingId String        @map("listing_id")
+  renterId  String        @map("renter_id")
+  hostId    String        @map("host_id")
+  status    BookingStatus @default(pending)
+
+  startDate DateTime @map("start_date")
+  endDate   DateTime @map("end_date")
+  quantity  Int      @default(1)
+
+  subtotal      Decimal @db.Decimal(10, 2)
+  serviceFee    Decimal @map("service_fee") @db.Decimal(10, 2)
+  insuranceFee  Decimal @default(0) @map("insurance_fee") @db.Decimal(10, 2)
+  deliveryFee   Decimal @default(0) @map("delivery_fee") @db.Decimal(10, 2)
+  depositAmount Decimal @default(0) @map("deposit_amount") @db.Decimal(10, 2)
+  totalAmount   Decimal @map("total_amount") @db.Decimal(10, 2)
+
+  hostPayout     Decimal? @map("host_payout") @db.Decimal(10, 2)
+  hostCommission Decimal? @map("host_commission") @db.Decimal(10, 2)
+  hostPaidAt     DateTime? @map("host_paid_at")
+
+  deliveryType    DeliveryType @default(pickup) @map("delivery_type")
+  deliveryAddress String?      @map("delivery_address")
+
+  checkinPhotos  String[]  @map("checkin_photos")
+  checkoutPhotos String[]  @map("checkout_photos")
+  checkinNote    String?   @map("checkin_note")
+  checkoutNote   String?   @map("checkout_note")
+  checkinCode    String?   @map("checkin_code")
+  checkoutCode   String?   @map("checkout_code")
+
+  cancellationReason String?   @map("cancellation_reason")
+  cancelledAt        DateTime? @map("cancelled_at")
+  disputeReason      String?   @map("dispute_reason") @db.Text
+  disputedAt         DateTime? @map("disputed_at")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  listing      Listing      @relation(fields: [listingId], references: [id])
+  renter       User         @relation("RenterBookings", fields: [renterId], references: [id])
+  host         User         @relation("HostBookings", fields: [hostId], references: [id])
+  payments     Payment[]
+  review       Review[]
+  conversation Conversation?
+
+  @@index([renterId])
+  @@index([hostId])
+  @@index([listingId, status, startDate, endDate])
+  @@map("bookings")
+}
+
+model Payment {
+  id           String          @id @default(uuid())
+  bookingId    String          @map("booking_id")
+  userId       String          @map("user_id")
+  type         PaymentType
+  amount       Decimal         @db.Decimal(10, 2)
+  currency     String          @default("RUB")
+  status       PaymentStatus   @default(pending)
+  provider     PaymentProvider
+  providerId   String?         @map("provider_id")
+  providerData Json?           @map("provider_data")
+  paymentUrl   String?         @map("payment_url")
+  createdAt    DateTime        @default(now()) @map("created_at")
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+
+  // Supports refundPayment lookups filtering by bookingId + status + type
+  @@index([bookingId, status])
+  @@map("payments")
+}
+
+model Review {
+  id                   String     @id @default(uuid())
+  bookingId            String     @map("booking_id")
+  reviewerId           String     @map("reviewer_id")
+  revieweeId           String     @map("reviewee_id")
+  listingId            String     @map("listing_id")
+  role                 ReviewRole
+  rating               Int
+  ratingAccuracy       Int?       @map("rating_accuracy")
+  ratingCondition      Int?       @map("rating_condition")
+  ratingCommunication  Int?       @map("rating_communication")
+  text                 String?    @db.Text
+  isPublished          Boolean    @default(true) @map("is_published")
+  createdAt            DateTime   @default(now()) @map("created_at")
+
+  booking  Booking @relation(fields: [bookingId], references: [id])
+  reviewer User    @relation("ReviewsGiven", fields: [reviewerId], references: [id])
+  reviewee User    @relation("ReviewsReceived", fields: [revieweeId], references: [id])
+  listing  Listing @relation(fields: [listingId], references: [id])
+
+  // Каждый участник брони может оставить один отзыв
+  @@unique([bookingId, reviewerId])
+  @@map("reviews")
+}
+
+model Wishlist {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  listingId    String   @map("listing_id")
+  priceAtSave  Decimal? @map("price_at_save") @db.Decimal(10, 2)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, listingId])
+  @@map("wishlists")
+}
+
+model Referral {
+  id          String    @id @default(uuid())
+  referrerId  String    @map("referrer_id")
+  refereeId   String?   @map("referee_id")
+  code        String    @unique
+  status      String    @default("pending")
+  bonusAmount Decimal   @default(500) @db.Decimal(10, 2) @map("bonus_amount")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  completedAt DateTime? @map("completed_at")
+
+  referrer User  @relation("Referrer", fields: [referrerId], references: [id])
+  referee  User? @relation("Referee",  fields: [refereeId],  references: [id])
+
+  @@map("referrals")
+}
+
+model Conversation {
+  id             String    @id @default(uuid())
+  bookingId      String?   @unique @map("booking_id")
+  listingId      String?   @map("listing_id")
+  participant1Id String    @map("participant_1")
+  participant2Id String    @map("participant_2")
+  lastMessageAt  DateTime? @map("last_message_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  booking      Booking?  @relation(fields: [bookingId], references: [id])
+  participant1 User      @relation("Participant1", fields: [participant1Id], references: [id])
+  participant2 User      @relation("Participant2", fields: [participant2Id], references: [id])
+  messages     Message[]
+
+  @@map("conversations")
+}
+
+model Message {
+  id             String   @id @default(uuid())
+  conversationId String   @map("conversation_id")
+  senderId       String   @map("sender_id")
+  text           String?  @db.Text
+  mediaUrl       String?  @map("media_url")
+  isRead         Boolean  @default(false) @map("is_read")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User         @relation(fields: [senderId], references: [id])
+
+  @@map("messages")
+}
+
+model Report {
+  id          String           @id @default(uuid())
+  reporterId  String           @map("reporter_id")
+  targetType  ReportTargetType @map("target_type")
+  targetId    String           @map("target_id")
+  reason      String
+  description String?          @db.Text
+  status      ReportStatus     @default(open)
+  createdAt   DateTime         @default(now()) @map("created_at")
+
+  reporter User @relation(fields: [reporterId], references: [id])
+
+  @@map("reports")
+}
+
+model HostPayout {
+  id          String        @id @default(uuid())
+  hostId      String        @map("host_id")
+  amount      Decimal       @db.Decimal(10, 2)
+  status      PaymentStatus @default(pending)
+  bankAccount Json?         @map("bank_account")
+  periodStart DateTime?     @map("period_start") @db.Date
+  periodEnd   DateTime?     @map("period_end") @db.Date
+  paidAt      DateTime?     @map("paid_at")
+  createdAt   DateTime      @default(now()) @map("created_at")
+
+  host User @relation(fields: [hostId], references: [id])
+
+  @@map("host_payouts")
+}
+
+// ── Business Cabinet ──────────────────────────────────────────────────────────
+
+model BusinessProfile {
+  id           String   @id @default(uuid())
+  userId       String   @unique @map("user_id")
+  companyName  String   @map("company_name")
+  inn          String?
+  legalAddress String?  @map("legal_address")
+  contactEmail String?  @map("contact_email")
+  website      String?
+  description  String?  @db.Text
+  logoUrl      String?  @map("logo_url")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  user     User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  invoices BusinessInvoice[]
+
+  @@map("business_profiles")
+}
+
+model TeamMember {
+  id          String           @id @default(uuid())
+  ownerId     String           @map("owner_id")
+  memberId    String?          @map("member_id")
+  email       String
+  role        TeamRole         @default(staff)
+  status      TeamMemberStatus @default(pending)
+  inviteToken String?          @unique @map("invite_token")
+  invitedAt   DateTime         @default(now()) @map("invited_at")
+  joinedAt    DateTime?        @map("joined_at")
+
+  owner  User  @relation("TeamOwner",  fields: [ownerId],  references: [id], onDelete: Cascade)
+  member User? @relation("TeamMember", fields: [memberId], references: [id], onDelete: SetNull)
+
+  @@index([ownerId])
+  @@map("team_members")
+}
+
+model BusinessInvoice {
+  id          String        @id @default(uuid())
+  profileId   String        @map("profile_id")
+  number      String        @unique
+  amount      Decimal       @db.Decimal(10, 2)
+  currency    String        @default("RUB")
+  status      PaymentStatus @default(pending)
+  periodStart DateTime      @map("period_start") @db.Date
+  periodEnd   DateTime      @map("period_end") @db.Date
+  pdfUrl      String?       @map("pdf_url")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  paidAt      DateTime?     @map("paid_at")
+
+  profile BusinessProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+  @@map("business_invoices")
+}

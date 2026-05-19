@@ -1,0 +1,31 @@
+node_modules/
+.turbo/
+dist/
+build/
+.next/
+.expo/
+*.local
+.DS_Store
+
+# Env
+.env
+.env.local
+.env.production
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Testing
+coverage/
+
+# Prisma
+prisma/migrations/*.lock
