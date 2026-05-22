@@ -147,7 +147,6 @@ export default function SearchScreen() {
         <FlashList
           data={Array.from({ length: 5 })}
           keyExtractor={(_, i) => `skeleton-${i}`}
-          estimatedItemSize={300}
           contentContainerStyle={styles.listContent}
           numColumns={1}
           renderItem={() => <ListingCard skeleton width={undefined} />}
@@ -172,7 +171,6 @@ export default function SearchScreen() {
         <FlashList
           data={listings}
           keyExtractor={(item: Listing) => item.id}
-          estimatedItemSize={280}
           contentContainerStyle={styles.listContent}
           renderItem={({ item }: { item: Listing }) => (
             <View style={styles.cardWrapper}>

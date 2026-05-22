@@ -75,9 +75,23 @@ export default function NotificationsScreen() {
   const notifications = data?.items ?? []
   const unreadCount = data?.unreadCount ?? 0
 
+  function navigateTo(url: string) {
+    // Parse server-provided action URLs into typed expo-router v6 route objects
+    const bookingMatch = url.match(/^\/booking\/(.+)$/)
+    const listingMatch = url.match(/^\/listing\/(.+)$/)
+    const chatMatch = url.match(/^\/chat\/(.+)$/)
+    if (bookingMatch) {
+      router.push({ pathname: '/booking/[id]', params: { id: bookingMatch[1] } })
+    } else if (listingMatch) {
+      router.push({ pathname: '/listing/[id]', params: { id: listingMatch[1] } })
+    } else if (chatMatch) {
+      router.push({ pathname: '/chat/[conversationId]', params: { conversationId: chatMatch[1] } })
+    }
+  }
+
   function handleTap(n: AppNotification) {
     if (!n.isRead) markRead.mutate(n.id)
-    if (n.actionUrl) router.push(n.actionUrl as any)
+    if (n.actionUrl) navigateTo(n.actionUrl)
   }
 
   return (

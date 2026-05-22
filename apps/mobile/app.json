@@ -7,11 +7,6 @@
     "icon": "./assets/icon.png",
     "scheme": "rigs",
     "userInterfaceStyle": "automatic",
-    "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#16a34a"
-    },
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.rigs.app",
@@ -30,8 +25,7 @@
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "CAMERA",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE"
+        "READ_MEDIA_IMAGES"
       ]
     },
     "web": {
@@ -40,6 +34,14 @@
     "plugins": [
       "expo-router",
       "expo-secure-store",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#16a34a"
+        }
+      ],
       [
         "expo-notifications",
         {

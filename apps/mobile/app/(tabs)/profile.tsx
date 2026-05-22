@@ -59,7 +59,7 @@ export default function ProfileScreen() {
       return
     }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       quality: 0.8,
       allowsEditing: true,
       aspect: [1, 1],
@@ -68,7 +68,8 @@ export default function ProfileScreen() {
     const uri = result.assets[0].uri
     const filename = uri.split('/').pop() ?? 'avatar.jpg'
     const formData = new FormData()
-    formData.append('file', { uri, name: filename, type: 'image/jpeg' } as any)
+    // React Native 0.81: blob-like object for multipart upload
+    formData.append('file', { uri, name: filename, type: 'image/jpeg' } as unknown as Blob)
     try {
       const { data: updated } = await api.patch<{ avatarUrl: string }>('/users/me/avatar', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },

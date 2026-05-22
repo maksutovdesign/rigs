@@ -73,7 +73,6 @@ export default function MessagesScreen() {
         <FlashList
           data={conversations}
           keyExtractor={(item: Conversation) => item.id}
-          estimatedItemSize={76}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#16a34a" />
           }

@@ -33,7 +33,7 @@ const CONDITION_LABELS: Record<ListingCondition, string> = {
   [ListingCondition.FAIR]: 'Удовлетворительное',
 }
 
-function HostName(user: { firstName?: string; lastName?: string }): string {
+function getHostName(user: { firstName?: string; lastName?: string }): string {
   return [user.firstName, user.lastName].filter(Boolean).join(' ') || 'Хост'
 }
 
@@ -69,7 +69,7 @@ export default function ListingDetailScreen() {
   const shortDesc = desc.slice(0, 100)
   const needsExpand = desc.length > 100
 
-  const hostName = listing.host ? HostName(listing.host) : 'Хост'
+  const hostName = listing.host ? getHostName(listing.host) : 'Хост'
   const isSuperHost = (listing.host?.totalRentals ?? 0) > 50
   const isVerified = listing.host?.kycLevel === KycLevel.PASSPORT || listing.host?.kycLevel === KycLevel.FULL
 

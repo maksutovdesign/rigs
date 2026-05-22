@@ -29,7 +29,7 @@ export function StarRating({ rating, size = 16, readonly = true, onRate }: StarR
         }
 
         return (
-          <TouchableOpacity key={star} onPress={() => onRate?.(star)} hitSlop={4}>
+          <TouchableOpacity key={star} onPress={() => onRate?.(star)} hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}>
             <Star
               size={size}
               color={rating >= star ? '#f59e0b' : '#d1d5db'}

@@ -153,7 +153,7 @@ export default function CreateListingScreen() {
     const ext = filename.split('.').pop()?.toLowerCase() ?? 'jpg'
     const type = ext === 'png' ? 'image/png' : 'image/jpeg'
     const formData = new FormData()
-    formData.append('file', { uri, name: filename, type } as any)
+    formData.append('file', { uri, name: filename, type } as unknown as Blob)
     const { data: res } = await api.post<{ url: string }>('/upload/temp', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
@@ -162,7 +162,7 @@ export default function CreateListingScreen() {
 
   async function pickPhotos() {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsMultipleSelection: true,
       quality: 0.8,
     })
@@ -197,7 +197,7 @@ export default function CreateListingScreen() {
     const filename = `photo_${index}.${isWebp ? 'webp' : 'jpg'}`
     const type = isWebp ? 'image/webp' : 'image/jpeg'
     const formData = new FormData()
-    formData.append('file', { uri: url, name: filename, type } as any)
+    formData.append('file', { uri: url, name: filename, type } as unknown as Blob)
     await api.post(`/upload/listings/${listingId}/media`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })

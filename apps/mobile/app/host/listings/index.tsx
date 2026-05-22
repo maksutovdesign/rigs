@@ -124,7 +124,6 @@ export default function HostListingsScreen() {
         <FlashList
           data={listings}
           keyExtractor={(item: Listing) => item.id}
-          estimatedItemSize={140}
           contentContainerStyle={styles.listContent}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#16a34a" />

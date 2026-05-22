@@ -119,7 +119,7 @@ export default function BookingDetailScreen() {
         // Non-critical: if the check fails, the user can still try to submit
         // (the API will reject with 409 Conflict if already reviewed)
       })
-  }, [booking, user])
+  }, [booking, user, reviewed])
 
   const submitReview = useMutation({
     mutationFn: async () => {

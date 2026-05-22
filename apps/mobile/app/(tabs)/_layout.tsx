@@ -1,6 +1,11 @@
 import { Tabs } from 'expo-router'
 import { Home, Search, MessageSquare, User, LayoutDashboard, ShoppingBag } from 'lucide-react-native'
 
+// Ensures deep links open the correct initial tab instead of a blank screen
+export const unstable_settings = {
+  initialRouteName: 'index',
+}
+
 export default function TabsLayout() {
   return (
     <Tabs

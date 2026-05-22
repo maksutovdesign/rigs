@@ -89,7 +89,6 @@ export default function RentalsTab() {
         data={TABS}
         horizontal
         keyExtractor={(_, i) => String(i)}
-        estimatedItemSize={80}
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.tabsContent}
         renderItem={({ item, index }) => (
@@ -119,7 +118,6 @@ export default function RentalsTab() {
         <FlashList
           data={filtered}
           keyExtractor={(item: Booking) => item.id}
-          estimatedItemSize={100}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#16a34a" />
           }

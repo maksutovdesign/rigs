@@ -4,9 +4,21 @@
     "strict": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"],
-      "@rigs/types": ["../../packages/types/src/index.ts"],
-      "@rigs/utils": ["../../packages/utils/src/index.ts"]
+      "@/*": [
+        "./*"
+      ],
+      "@rigs/types": [
+        "../../packages/types/src/index.ts"
+      ],
+      "@rigs/utils": [
+        "../../packages/utils/src/index.ts"
+      ]
     }
-  }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
+  ]
 }

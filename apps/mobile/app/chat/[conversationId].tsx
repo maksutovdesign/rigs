@@ -126,6 +126,8 @@ export default function ChatScreen() {
     typingTimerRef.current = setTimeout(() => {
       socketRef.current?.emit('typing', { conversationId, isTyping: false })
     }, 2000)
+    // socketRef and typingTimerRef are intentionally omitted from deps —
+    // React guarantees ref objects are stable across renders.
   }, [conversationId])
 
   async function handleSend() {

@@ -87,7 +87,6 @@ export default function RentalsScreen() {
         <FlashList
           data={filtered}
           keyExtractor={(item: Booking) => item.id}
-          estimatedItemSize={110}
           contentContainerStyle={styles.listContent}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#16a34a" />
