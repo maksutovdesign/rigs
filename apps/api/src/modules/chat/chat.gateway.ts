@@ -9,6 +9,7 @@ import {
   WsException,
 } from '@nestjs/websockets'
 import { Server, Socket } from 'socket.io'
+import type { ServerToClientEvents, ClientToServerEvents, MessagePayload } from './types/socket-events.types'
 import { JwtService } from '@nestjs/jwt'
 import { ConfigService } from '@nestjs/config'
 import { Logger } from '@nestjs/common'
@@ -22,10 +23,15 @@ interface AuthSocket extends Socket {
 
 @WebSocketGateway({
   namespace: 'chat',
-  cors: { origin: '*', credentials: true },
+  cors: {
+    origin: (process.env['WEB_URL'] ?? 'http://localhost:3000')
+      .split(',')
+      .map((o) => o.trim()),
+    credentials: true,
+  },
 })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
-  @WebSocketServer() server!: Server
+  @WebSocketServer() server!: Server<ClientToServerEvents, ServerToClientEvents>
   private readonly logger = new Logger(ChatGateway.name)
 
   constructor(
@@ -172,7 +178,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   // ─── Called from REST (MessagesService) ───────────────────────────────────
 
-  emitNewMessage(conversationId: string, message: unknown) {
+  emitNewMessage(conversationId: string, message: MessagePayload) {
     this.server.to(`conv:${conversationId}`).emit('new_message', message)
   }
 }
