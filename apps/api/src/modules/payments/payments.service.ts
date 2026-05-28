@@ -287,14 +287,17 @@ export class PaymentsService implements OnModuleInit {
 
   // ─── Webhook ────────────────────────────────────────────────────────────────
 
-  verifyWebhookSignature(rawBody: Buffer, signatureHeader: string): boolean {
+  verifyWebhookSignature(_rawBody: Buffer, signatureHeader: string): boolean {
     const secret = this.config.get<string>('YOOKASSA_WEBHOOK_SECRET')
     if (!secret) {
       this.logger.error('YOOKASSA_WEBHOOK_SECRET not set — webhooks unprotected!')
       return false
     }
-    const expected = crypto.createHmac('sha256', secret).update(rawBody).digest()
-    const received = Buffer.from(signatureHeader, 'hex')
+    // YooKassa sends: Authorization: Bearer <webhook-secret>
+    // The controller strips "Bearer " and passes the raw secret here.
+    // We do a constant-time comparison to prevent timing attacks.
+    const expected = Buffer.from(secret, 'utf-8')
+    const received = Buffer.from(signatureHeader, 'utf-8')
     if (expected.length !== received.length) return false
     return crypto.timingSafeEqual(expected, received)
   }

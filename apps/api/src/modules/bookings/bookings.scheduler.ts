@@ -20,18 +20,26 @@ export class BookingsScheduler {
 
   /**
    * Runs every 15 minutes.
-   * Cancels all PENDING bookings that were created more than 24 hours ago.
+   * Cancels all PENDING bookings that were created more than 24 hours ago
+   * and voids any deposit holds that were created alongside them.
+   *
+   * NOTE: deposit holds are created at booking-creation time (even for
+   * pending bookings) when the listing has a depositAmount > 0, so we
+   * must explicitly release them here.
    */
-  /** Every 15 minutes: */
   @Cron('0 */15 * * * *')
   async cancelExpiredPendingBookings(): Promise<void> {
     const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1_000)
 
-    const { count } = await this.prisma.booking.updateMany({
-      where: {
-        status: 'pending',
-        createdAt: { lt: cutoff },
-      },
+    // Fetch first — updateMany does not return the affected rows
+    const expired = await this.prisma.booking.findMany({
+      where: { status: 'pending', createdAt: { lt: cutoff } },
+      select: { id: true },
+    })
+    if (expired.length === 0) return
+
+    await this.prisma.booking.updateMany({
+      where: { id: { in: expired.map((b) => b.id) } },
       data: {
         status: 'cancelled_host',
         cancellationReason: 'Автоматическая отмена: истёк срок подтверждения (24 ч)',
@@ -39,9 +47,16 @@ export class BookingsScheduler {
       },
     })
 
-    if (count > 0) {
-      this.logger.log(`Auto-cancelled ${count} expired pending booking(s)`)
+    // Void any pending deposit holds so the renter's funds are not frozen
+    for (const b of expired) {
+      try {
+        await this.paymentsService.cancelDepositHold(b.id)
+      } catch (err: any) {
+        this.logger.error(`cancelDepositHold failed for booking ${b.id}: ${err.message}`)
+      }
     }
+
+    this.logger.log(`Auto-cancelled ${expired.length} expired pending booking(s)`)
   }
 
   /**
